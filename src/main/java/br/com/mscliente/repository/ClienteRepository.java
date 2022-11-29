@@ -13,6 +13,8 @@ public interface ClienteRepository extends JpaRepository<ClienteModel, UUID> {
 
     boolean existsByCpf(String cpf);
 
+    boolean existsByEmail(String email);
+
     Optional<ClienteModel> findByCpf (String cpf);
 
 }

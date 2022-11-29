@@ -23,15 +23,16 @@ public class ClienteModel implements Serializable {
     @Column(nullable = false)
     private String sobrenome;
 
-    @Column(nullable = false)
-    private String email;
-
     @Column(nullable = false, unique = true)
     private String cpf;
+
+    @Column(nullable = false)
+    private String email;
 
     @Column(nullable = false)
     private boolean clienteAtivo;
 
     @Column(nullable = false)
     private LocalDateTime dataCriacao;
+
 }

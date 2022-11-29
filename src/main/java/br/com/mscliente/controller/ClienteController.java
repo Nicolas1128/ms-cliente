@@ -1,5 +1,8 @@
 package br.com.mscliente.controller;
 
+import br.com.mscliente.config.exceptions.CpfCadastradoException;
+import br.com.mscliente.config.exceptions.CpfNaoEncontradoException;
+import br.com.mscliente.config.exceptions.EmailCadastradoException;
 import br.com.mscliente.dto.ClienteDto;
 import br.com.mscliente.model.ClienteModel;
 import br.com.mscliente.service.ClienteService;
@@ -26,29 +29,41 @@ public class ClienteController {
     ClienteService clienteService;
 
     @PostMapping
-    public ResponseEntity<Object> salvarCliente(@RequestBody @Valid ClienteDto clienteDto){
-        if (clienteService.existsByCpf(clienteDto.getCpf())) {
-            return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body("Documento já cadastrado!");
+    public ResponseEntity<Object> cadastrarCLiente (@RequestBody @Valid ClienteDto clienteDto) {
+
+        if (clienteService.existsByCpf(clienteDto.getCpf())){
+            throw new CpfCadastradoException("422");
         }
+        if (clienteService.existsByEmail(clienteDto.getEmail())){
+            throw new EmailCadastradoException("422");
+        }
+
+        clienteDto = ClienteDto.builder()
+            .cpf(clienteDto.getCpf())
+            .email(clienteDto.getEmail())
+            .sobrenome(clienteDto.getSobrenome())
+            .nome(clienteDto.getNome())
+            .build();
 
         var clienteModel = new ClienteModel();
         BeanUtils.copyProperties(clienteDto, clienteModel);
         clienteModel.setDataCriacao(LocalDateTime.now(ZoneId.of("UTC")));
         clienteModel.setClienteAtivo(true);
         return ResponseEntity.status(HttpStatus.CREATED).body(clienteService.save(clienteModel));
+
     }
 
     @GetMapping
-    public ResponseEntity<Page<ClienteModel>> buscarTodosClientes(@PageableDefault(page = 0, size = 10, sort = "nome", direction = Sort.Direction.ASC) Pageable pageable) {
+    public ResponseEntity<Page<ClienteModel>> buscarTodosClientes(@PageableDefault(page = 0, size = 10, sort = "nome",
+            direction = Sort.Direction.ASC) Pageable pageable) {
         return ResponseEntity.status(HttpStatus.OK).body(clienteService.findAll(pageable));
     }
     @GetMapping("/{cpf}")
     public ResponseEntity<Object> buscarPorCpf(@PathVariable(value = "cpf") String cpf) {
         Optional<ClienteModel> clienteModelOptional = clienteService.findByCpf(cpf);
         if (!clienteModelOptional.isPresent()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Cliente não encontrado!");
+            throw new CpfNaoEncontradoException("404");
         }
         return ResponseEntity.status(HttpStatus.OK).body(clienteModelOptional.get());
     }
-
 }
