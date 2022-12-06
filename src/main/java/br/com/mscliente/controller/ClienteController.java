@@ -1,69 +1,60 @@
 package br.com.mscliente.controller;
 
 import br.com.mscliente.config.exceptions.CpfCadastradoException;
-import br.com.mscliente.config.exceptions.CpfNaoEncontradoException;
 import br.com.mscliente.config.exceptions.EmailCadastradoException;
-import br.com.mscliente.dto.ClienteDto;
-import br.com.mscliente.model.ClienteModel;
-import br.com.mscliente.service.ClienteService;
-import org.springframework.beans.BeanUtils;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-import org.springframework.data.web.PageableDefault;
+import br.com.mscliente.controller.converter.IConverterClienteRequest;
+import br.com.mscliente.controller.request.ClienteRequest;
+import br.com.mscliente.entity.ClienteEntity;
+import br.com.mscliente.gateway.IConsultarClienteGateway;
+import br.com.mscliente.usecase.ClienteUseCase;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.Optional;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/cliente")
 public class ClienteController {
 
-    @Autowired
-    ClienteService clienteService;
+    private final ClienteUseCase clienteUseCase;
+    private final IConverterClienteRequest iConverterClienteRequest;
+    private final IConsultarClienteGateway iConsultarClienteGateway;
 
     @PostMapping
-    public ResponseEntity<Object> cadastrarCLiente (@RequestBody @Valid ClienteDto clienteDto) {
+    public ResponseEntity<Object> cadastrarCLiente(@RequestBody @Valid ClienteRequest clienteRequest) {
 
-        if (clienteService.existsByCpf(clienteDto.getCpf())){
-            throw new CpfCadastradoException("422");
+        try {
+            ClienteEntity clienteEntity = iConverterClienteRequest.requestToEntity(clienteRequest);
+            return ResponseEntity.status(HttpStatus.CREATED).body(clienteUseCase.save(clienteEntity));
+
+        } catch (CpfCadastradoException exception) {
+            throw new CpfCadastradoException(exception.getCode(),
+                    exception.getMessage(),
+                    exception.getDeveloperMessage());
+        } catch (EmailCadastradoException emailCadastradoException) {
+            throw new EmailCadastradoException(emailCadastradoException.getCode(),
+                    emailCadastradoException.getMessage(),
+                    emailCadastradoException.getDeveloperMessage());
         }
-        if (clienteService.existsByEmail(clienteDto.getEmail())){
-            throw new EmailCadastradoException("422");
-        }
-
-        clienteDto = ClienteDto.builder()
-            .cpf(clienteDto.getCpf())
-            .email(clienteDto.getEmail())
-            .sobrenome(clienteDto.getSobrenome())
-            .nome(clienteDto.getNome())
-            .build();
-
-        var clienteModel = new ClienteModel();
-        BeanUtils.copyProperties(clienteDto, clienteModel);
-        clienteModel.setDataCriacao(LocalDateTime.now(ZoneId.of("UTC")));
-        clienteModel.setClienteAtivo(true);
-        return ResponseEntity.status(HttpStatus.CREATED).body(clienteService.save(clienteModel));
-
     }
 
-    @GetMapping
-    public ResponseEntity<Page<ClienteModel>> buscarTodosClientes(@PageableDefault(page = 0, size = 10, sort = "nome",
-            direction = Sort.Direction.ASC) Pageable pageable) {
-        return ResponseEntity.status(HttpStatus.OK).body(clienteService.findAll(pageable));
-    }
+    //    @GetMapping
+//    public ResponseEntity<Page<ClienteEntity>> buscarTodosClientes(@PageableDefault(page = 0,
+//                                                                                    size = 10,
+//                                                                                    sort = "nome",
+//            direction = Sort.Direction.ASC) Pageable pageable) {
+//        return ResponseEntity.status(HttpStatus.OK).body(clienteUseCase.findAll(pageable));
+//    }
+
     @GetMapping("/{cpf}")
     public ResponseEntity<Object> buscarPorCpf(@PathVariable(value = "cpf") String cpf) {
-        Optional<ClienteModel> clienteModelOptional = clienteService.findByCpf(cpf);
-        if (!clienteModelOptional.isPresent()) {
-            throw new CpfNaoEncontradoException("404");
-        }
-        return ResponseEntity.status(HttpStatus.OK).body(clienteModelOptional.get());
+
+        Optional<ClienteEntity> clienteEntity = iConsultarClienteGateway.buscarPorCpf(cpf);
+        return ResponseEntity.status(HttpStatus.OK).body(clienteUseCase.findByCpf(cpf).get());
+
     }
 }

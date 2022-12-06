@@ -7,9 +7,10 @@ import org.springframework.http.HttpStatus;
 
 @Getter
 @NoArgsConstructor
-public class CpfCadastradoException extends ResourceException{
+public class BadGatewayException extends ResourceException {
+
     @Builder
-    public CpfCadastradoException(HttpStatus code, String message, String developerMessage) {
-        super(code,message, developerMessage);
+    public BadGatewayException(HttpStatus code, String message, String developerMessage){
+        super(code, message, developerMessage);
     }
 }
