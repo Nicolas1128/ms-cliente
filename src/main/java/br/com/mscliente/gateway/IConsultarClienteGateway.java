@@ -10,5 +10,5 @@ public interface IConsultarClienteGateway {
 
     Page<ClienteEntity> listarTodosClientes(Pageable pageable);
 
-    Optional<ClienteEntity> buscarPorCpf(String cpf);
+    Optional<ClienteEntity> buscarClientePorCpf(String cpf);
 }

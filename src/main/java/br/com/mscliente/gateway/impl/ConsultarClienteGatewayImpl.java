@@ -22,7 +22,7 @@ public class ConsultarClienteGatewayImpl implements IConsultarClienteGateway {
     }
 
     @Override
-    public Optional<ClienteEntity> buscarPorCpf(String cpf) {
+    public Optional<ClienteEntity> buscarClientePorCpf(String cpf) {
         return clienteRepository.findByCpf(cpf);
     }
 }
